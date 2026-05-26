@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* Dark Fantasy Palette */
+    --background: 220 15% 6%;
+    --foreground: 40 15% 88%;
+
+    --card: 220 14% 9%;
+    --card-foreground: 40 15% 88%;
+
+    --popover: 220 14% 9%;
+    --popover-foreground: 40 15% 88%;
+
+    --primary: 40 60% 52%;
+    --primary-foreground: 220 15% 6%;
+
+    --secondary: 220 12% 14%;
+    --secondary-foreground: 40 15% 75%;
+
+    --muted: 220 12% 12%;
+    --muted-foreground: 220 8% 50%;
+
+    --accent: 270 40% 28%;
+    --accent-foreground: 270 60% 85%;
+
+    --destructive: 0 72% 38%;
+    --destructive-foreground: 0 0% 95%;
+
+    --border: 220 12% 16%;
+    --input: 220 12% 14%;
+    --ring: 40 60% 52%;
+
+    --radius: 0.5rem;
+
+    /* Custom fantasy tokens */
+    --gold: 40 70% 55%;
+    --gold-dim: 40 50% 38%;
+    --gold-muted: 40 30% 25%;
+    --crimson: 355 75% 45%;
+    --crimson-dim: 355 55% 30%;
+    --arcane: 270 55% 40%;
+    --arcane-dim: 270 40% 28%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-inter, 'Inter', system-ui, sans-serif);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-cinzel, 'Cinzel', serif);
+    letter-spacing: 0.03em;
+  }
+}
+
+@layer components {
+  /* Fantasy scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--gold-muted));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--gold-dim));
+  }
+
+  /* Gold border accent */
+  .border-gold {
+    border-color: hsl(var(--gold) / 0.4);
+  }
+
+  .border-gold-bright {
+    border-color: hsl(var(--gold) / 0.7);
+  }
+
+  /* Fantasy card */
+  .card-fantasy {
+    @apply bg-card border border-border rounded-lg;
+    background-image:
+      radial-gradient(ellipse at top left, hsl(var(--gold) / 0.03) 0%, transparent 60%),
+      radial-gradient(ellipse at bottom right, hsl(var(--arcane) / 0.04) 0%, transparent 60%);
+  }
+
+  /* Gold text gradient */
+  .text-gold-gradient {
+    background: linear-gradient(135deg, hsl(var(--gold)) 0%, hsl(40 80% 72%) 50%, hsl(var(--gold)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glow effects */
+  .glow-gold {
+    box-shadow: 0 0 15px hsl(var(--gold) / 0.25), 0 0 40px hsl(var(--gold) / 0.1);
+  }
+
+  .glow-crimson {
+    box-shadow: 0 0 15px hsl(var(--crimson) / 0.25), 0 0 40px hsl(var(--crimson) / 0.1);
+  }
+
+  .glow-arcane {
+    box-shadow: 0 0 15px hsl(var(--arcane) / 0.3), 0 0 40px hsl(var(--arcane) / 0.15);
+  }
+
+  /* Timeline line */
+  .timeline-line {
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      hsl(var(--gold) / 0.4) 10%,
+      hsl(var(--gold) / 0.4) 90%,
+      transparent
+    );
+  }
+
+  /* Section divider */
+  .divider-fantasy {
+    @apply relative flex items-center gap-3;
+  }
+
+  .divider-fantasy::before,
+  .divider-fantasy::after {
+    content: '';
+    @apply flex-1 h-px;
+    background: linear-gradient(to right, transparent, hsl(var(--gold) / 0.3), transparent);
+  }
+
+  /* Shimmer loading */
+  .shimmer-loading {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 25%,
+      hsl(var(--muted-foreground) / 0.1) 50%,
+      hsl(var(--muted)) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Metric bars */
+  .metric-bar-track {
+    @apply h-2 rounded-full bg-muted overflow-hidden;
+  }
+
+  /* Input fantasy style */
+  .input-fantasy {
+    @apply bg-input border border-border rounded-md px-3 py-2 text-sm;
+    @apply focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring;
+    @apply placeholder:text-muted-foreground transition-colors;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Cinzel', serif;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out both;
+  }
+
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+}
