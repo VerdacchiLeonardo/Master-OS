@@ -12,29 +12,34 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setDebugInfo(null)
 
     try {
       const supabase = createClient()
+      const redirectTo = `${window.location.origin}/auth/callback`
+      setDebugInfo(`URL: ${SUPABASE_URL.slice(0, 40)}\nRedirect: ${redirectTo}`)
+
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+        options: { emailRedirectTo: redirectTo },
       })
 
       if (error) {
+        setDebugInfo(`Codice: ${error.status ?? 'n/a'} | Status: ${error.name}\nMessaggio: ${error.message}`)
         setError(error.message)
       } else {
         setSent(true)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      setError(`Errore di rete: ${message}. Verifica la connessione.`)
+      setDebugInfo(`Eccezione JS: ${message}`)
+      setError(`Errore di rete: ${message}`)
     } finally {
       setLoading(false)
     }
@@ -95,6 +100,12 @@ export default function LoginPage() {
                     className="input-fantasy w-full"
                   />
                 </div>
+
+                {debugInfo && (
+                  <div className="text-xs font-mono text-muted-foreground bg-black/40 border border-white/10 rounded-md px-3 py-2 whitespace-pre-wrap break-all">
+                    {debugInfo}
+                  </div>
+                )}
 
                 {error && (
                   <div className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-md px-3 py-2">
