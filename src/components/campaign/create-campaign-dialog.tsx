@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useStore } from '@/lib/store'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger,
 } from '@/components/ui/dialog'
@@ -24,12 +24,12 @@ const SYSTEMS = ['D&D 5e', 'Pathfinder 2e', 'Call of Cthulhu', 'Savage Worlds', 
 
 interface CreateCampaignDialogProps {
   children: React.ReactNode
-  userId: string
 }
 
-export function CreateCampaignDialog({ children, userId }: CreateCampaignDialogProps) {
+export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
   const router = useRouter()
-  const supabase = createClient()
+  const createCampaign = useStore(s => s.createCampaign)
+  const createWorldState = useStore(s => s.createWorldState)
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
@@ -46,36 +46,42 @@ export function CreateCampaignDialog({ children, userId }: CreateCampaignDialogP
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.title.trim()) return
     setLoading(true)
 
-    const { data, error } = await supabase
-      .from('campaigns')
-      .insert({
-        owner_id: userId,
-        title: form.title,
-        description: form.description || null,
-        lore: form.lore || null,
-        final_objective: form.final_objective || null,
-        narrative_tone: form.narrative_tone,
-        game_system: form.game_system,
-        estimated_sessions: form.estimated_sessions ? parseInt(form.estimated_sessions) : null,
-      })
-      .select()
-      .single()
+    const campaign = createCampaign({
+      title: form.title,
+      description: form.description || null,
+      lore: form.lore || null,
+      final_objective: form.final_objective || null,
+      narrative_tone: form.narrative_tone as 'epic',
+      game_system: form.game_system,
+      estimated_sessions: form.estimated_sessions ? parseInt(form.estimated_sessions) : null,
+      status: 'active',
+      cover_image_url: null,
+    })
 
-    if (!error && data) {
-      // Create initial world state
-      await supabase.from('world_states').insert({ campaign_id: data.id })
+    createWorldState({
+      campaign_id: campaign.id,
+      session_number: 0,
+      war_level: 0,
+      corruption_level: 0,
+      political_stability: 100,
+      narrative_tension: 0,
+      villain_progress: 0,
+      hero_reputation: 50,
+      objective_progress: 0,
+      active_threats: [],
+      active_conflicts: [],
+      custom_metrics: {},
+      world_summary: null,
+    })
 
-      setOpen(false)
-      router.push(`/campaign/${data.id}`)
-      router.refresh()
-    }
-
+    setOpen(false)
     setLoading(false)
+    router.push(`/campaign/${campaign.id}`)
   }
 
   return (

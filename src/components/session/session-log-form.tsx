@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, CheckCircle, AlertCircle, BookOpen } from 'lucide-react'
+import { CheckCircle, AlertCircle, BookOpen } from 'lucide-react'
+import { useStore } from '@/lib/store'
 import type { Campaign, SessionLog, WorldState } from '@/types'
 
 interface SessionLogFormProps {
@@ -22,35 +23,27 @@ export function SessionLogForm({
 }: SessionLogFormProps) {
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const createSessionLog = useStore(s => s.createSessionLog)
 
-  async function handleSave() {
+  function handleSave() {
     if (!notes.trim()) return
-    setSaving(true)
     setError(null)
 
-    try {
-      const res = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          campaignId: campaign.id,
-          sessionNumber,
-          title: title || null,
-          rawNotes: notes,
-          analysis: null,
-          currentWorldState: null,
-        }),
-      })
+    const session = createSessionLog({
+      campaign_id: campaign.id,
+      session_number: sessionNumber,
+      title: title || null,
+      raw_notes: notes,
+      ai_summary: null,
+      ai_consequences: null,
+      key_events: [],
+      session_date: null,
+      duration_hours: null,
+      status: 'draft',
+    })
 
-      if (!res.ok) throw new Error(await res.text())
-      const { session } = await res.json()
-      onSaved(session)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Errore durante il salvataggio')
-    }
-    setSaving(false)
+    onSaved(session)
   }
 
   return (
@@ -102,18 +95,9 @@ Esempio:
       )}
 
       <div className="flex items-center gap-2">
-        <Button onClick={handleSave} disabled={saving || !notes.trim()} className="gap-1.5">
-          {saving ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Salvataggio...
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-4 h-4" />
-              Salva Sessione
-            </>
-          )}
+        <Button onClick={handleSave} disabled={!notes.trim()} className="gap-1.5">
+          <CheckCircle className="w-4 h-4" />
+          Salva Sessione
         </Button>
         <Button variant="ghost" onClick={onCancel}>Annulla</Button>
       </div>

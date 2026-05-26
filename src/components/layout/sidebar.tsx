@@ -3,11 +3,10 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  Sword, ScrollText, Globe, Map, Users, Shield, Target, BookOpen, ChevronLeft, LogOut, Sparkles
+  Sword, ScrollText, Globe, Map, Users, Shield, Target, BookOpen, ChevronLeft, Download, Upload, Sparkles
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useStore } from '@/lib/store'
 
 interface SidebarProps {
   campaignId?: string
@@ -27,12 +26,24 @@ const campaignNavItems = (id: string) => [
 
 export function Sidebar({ campaignId, campaignTitle }: SidebarProps) {
   const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
+  const exportData = useStore(s => s.exportData)
+  const importData = useStore(s => s.importData)
 
-  async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.push('/login')
+  function handleImport() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        const ok = importData(ev.target?.result as string)
+        if (!ok) alert('File non valido o corrotto.')
+      }
+      reader.readAsText(file)
+    }
+    input.click()
   }
 
   return (
@@ -119,13 +130,20 @@ export function Sidebar({ campaignId, campaignTitle }: SidebarProps) {
       )}
 
       {/* Bottom actions */}
-      <div className="p-3 border-t border-[hsl(var(--gold)/0.1)]">
+      <div className="p-3 border-t border-[hsl(var(--gold)/0.1)] space-y-0.5">
         <button
-          onClick={handleSignOut}
+          onClick={exportData}
           className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all w-full"
         >
-          <LogOut className="w-4 h-4" />
-          Esci
+          <Download className="w-4 h-4" />
+          Esporta JSON
+        </button>
+        <button
+          onClick={handleImport}
+          className="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all w-full"
+        >
+          <Upload className="w-4 h-4" />
+          Importa JSON
         </button>
       </div>
     </aside>

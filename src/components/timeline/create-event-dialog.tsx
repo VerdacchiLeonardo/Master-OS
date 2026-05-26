@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useStore } from '@/lib/store'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from '@/components/ui/dialog'
@@ -25,7 +25,7 @@ interface CreateEventDialogProps {
 }
 
 export function CreateEventDialog({ children, campaignId, onCreated }: CreateEventDialogProps) {
-  const supabase = createClient()
+  const createTimelineEvent = useStore(s => s.createTimelineEvent)
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
@@ -42,31 +42,27 @@ export function CreateEventDialog({ children, campaignId, onCreated }: CreateEve
     setForm(p => ({ ...p, [key]: value }))
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.title.trim()) return
     setLoading(true)
 
-    const { data, error } = await supabase
-      .from('timeline_events')
-      .insert({
-        campaign_id: campaignId,
-        title: form.title,
-        description: form.description || null,
-        event_type: form.event_type,
-        importance: form.importance,
-        status: form.status,
-        trigger_condition: form.trigger_condition || null,
-        event_date: form.event_date || null,
-      })
-      .select()
-      .single()
+    const event = createTimelineEvent({
+      campaign_id: campaignId,
+      title: form.title,
+      description: form.description || null,
+      event_type: form.event_type,
+      importance: form.importance as 'major',
+      status: form.status as 'future',
+      trigger_condition: form.trigger_condition || null,
+      event_date: form.event_date || null,
+      session_number: null,
+      ai_analysis: null,
+    })
 
-    if (!error && data) {
-      onCreated(data)
-      setOpen(false)
-      setForm({ title: '', description: '', event_type: 'story', importance: 'major', status: 'future', trigger_condition: '', event_date: '' })
-    }
+    onCreated(event)
+    setOpen(false)
+    setForm({ title: '', description: '', event_type: 'story', importance: 'major', status: 'future', trigger_condition: '', event_date: '' })
     setLoading(false)
   }
 

@@ -1,50 +1,32 @@
-import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useParams } from 'next/navigation'
+import { useStore } from '@/lib/store'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { WorldStatePanel } from '@/components/world-state/world-state-panel'
-import { formatDate, truncate } from '@/lib/utils'
+import { truncate } from '@/lib/utils'
 import {
-  ScrollText, Globe, Users, Shield, Target, BookOpen, Sword, TrendingUp, AlertTriangle, Map,
+  ScrollText, Globe, Users, Shield, Target, BookOpen, Sword, TrendingUp, Map,
 } from 'lucide-react'
 import Link from 'next/link'
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const supabase = await createClient()
-  const { data } = await supabase.from('campaigns').select('title').eq('id', id).single()
-  return { title: data?.title ?? 'Campagna' }
-}
+export default function CampaignDashboard() {
+  const { id } = useParams<{ id: string }>()
+  const campaign = useStore(s => s.campaigns[id])
+  const worldState = useStore(s => s.getLatestWorldState(id))
+  const recentEvents = useStore(s => s.getEventsByCampaign(id).slice(0, 5))
+  const sessions = useStore(s => s.getSessionsByCampaign(id).slice(0, 3))
+  const factionCount = useStore(s => s.getFactionsByCampaign(id).length)
+  const npcCount = useStore(s => s.getNPCsByCampaign(id).length)
 
-export default async function CampaignDashboard({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const supabase = await createClient()
-
-  const [
-    { data: campaign },
-    { data: worldStates },
-    { data: recentEvents },
-    { data: sessions },
-    { data: factions },
-    { data: npcs },
-  ] = await Promise.all([
-    supabase.from('campaigns').select('*').eq('id', id).single(),
-    supabase.from('world_states').select('*').eq('campaign_id', id).order('session_number', { ascending: false }).limit(1),
-    supabase.from('timeline_events').select('*').eq('campaign_id', id).order('created_at', { ascending: false }).limit(5),
-    supabase.from('session_logs').select('id, session_number, title, created_at, status').eq('campaign_id', id).order('session_number', { ascending: false }).limit(3),
-    supabase.from('factions').select('id').eq('campaign_id', id),
-    supabase.from('npcs').select('id').eq('campaign_id', id),
-  ])
-
-  if (!campaign) notFound()
-
-  const worldState = worldStates?.[0] ?? null
+  if (!campaign) return null
 
   const quickLinks = [
-    { href: `/campaign/${id}/timeline`, icon: ScrollText, label: 'Timeline', count: recentEvents?.length },
-    { href: `/campaign/${id}/sessions`, icon: BookOpen, label: 'Sessioni', count: sessions?.length },
-    { href: `/campaign/${id}/npcs`, icon: Users, label: 'NPC', count: npcs?.length },
-    { href: `/campaign/${id}/factions`, icon: Shield, label: 'Fazioni', count: factions?.length },
+    { href: `/campaign/${id}/timeline`, icon: ScrollText, label: 'Timeline', count: recentEvents.length },
+    { href: `/campaign/${id}/sessions`, icon: BookOpen, label: 'Sessioni', count: sessions.length },
+    { href: `/campaign/${id}/npcs`, icon: Users, label: 'NPC', count: npcCount },
+    { href: `/campaign/${id}/factions`, icon: Shield, label: 'Fazioni', count: factionCount },
     { href: `/campaign/${id}/maps`, icon: Map, label: 'Mappe', count: undefined },
     { href: `/campaign/${id}/objectives`, icon: Target, label: 'Obiettivi', count: undefined },
   ]
@@ -136,7 +118,7 @@ export default async function CampaignDashboard({ params }: { params: Promise<{ 
               </Link>
             </div>
 
-            {recentEvents && recentEvents.length > 0 ? (
+            {recentEvents.length > 0 ? (
               <div className="space-y-2">
                 {recentEvents.map(event => (
                   <div key={event.id} className="flex items-start gap-2 py-1.5 border-b border-border/50 last:border-0">
@@ -158,7 +140,7 @@ export default async function CampaignDashboard({ params }: { params: Promise<{ 
           </div>
 
           {/* Recent sessions */}
-          {sessions && sessions.length > 0 && (
+          {sessions.length > 0 && (
             <div className="card-fantasy border border-border rounded-xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-medium flex items-center gap-1.5">
