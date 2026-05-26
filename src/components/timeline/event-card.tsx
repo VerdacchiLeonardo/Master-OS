@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { cn, getImportanceColor, getStatusColor } from '@/lib/utils'
 import {
-  Sword, ScrollText, Crown, Star, Eye, Skull, Globe, Zap, AlertTriangle, Clock, ChevronDown, ChevronUp
+  Sword, ScrollText, Crown, Star, Eye, Skull, Globe, Zap, AlertTriangle, Clock, ChevronDown, ChevronUp, Sparkles, Loader2
 } from 'lucide-react'
 import type { TimelineEvent } from '@/types'
+import { useStore } from '@/lib/store'
+import { getGeminiKey, geminiGenerate, buildTimelineEventPrompt } from '@/lib/gemini'
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   story: ScrollText,
@@ -38,10 +40,33 @@ interface TimelineEventCardProps {
   onUpdate?: (e: TimelineEvent) => void
 }
 
-export function TimelineEventCard({ event }: TimelineEventCardProps) {
+export function TimelineEventCard({ event: initial }: TimelineEventCardProps) {
+  const [event, setEvent] = useState(initial)
   const [expanded, setExpanded] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const updateTimelineEvent = useStore(s => s.updateTimelineEvent)
+  const getCampaignById = useStore(s => s.getCampaignById)
   const Icon = TYPE_ICONS[event.event_type] ?? ScrollText
   const dotColor = STATUS_DOT_COLORS[event.status] ?? 'bg-muted-foreground'
+
+  async function handleAI(e: React.MouseEvent) {
+    e.stopPropagation()
+    const key = getGeminiKey()
+    if (!key) { alert('Configura prima la chiave API Gemini nella sidebar.'); return }
+    const campaign = getCampaignById(event.campaign_id)
+    if (!campaign) return
+    setGenerating(true)
+    try {
+      const text = await geminiGenerate(key, buildTimelineEventPrompt(campaign, event))
+      updateTimelineEvent(event.id, { ai_analysis: text })
+      setEvent(ev => ({ ...ev, ai_analysis: text }))
+      setExpanded(true)
+    } catch (err) {
+      alert(`Errore AI: ${err instanceof Error ? err.message : 'Errore sconosciuto'}`)
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   return (
     <div className="relative">
@@ -125,15 +150,25 @@ export function TimelineEventCard({ event }: TimelineEventCardProps) {
               </div>
             )}
 
-            {(event.description?.length ?? 0) > 80 || event.ai_analysis ? (
+            <div className="mt-1 flex items-center gap-3">
+              {(event.description?.length ?? 0) > 80 || event.ai_analysis ? (
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  {expanded ? 'Meno' : 'Altro'}
+                </button>
+              ) : null}
               <button
-                onClick={() => setExpanded(!expanded)}
-                className="mt-1 flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                onClick={handleAI}
+                disabled={generating}
+                className="flex items-center gap-0.5 text-[10px] text-purple-400/70 hover:text-purple-300 transition-colors disabled:opacity-50"
               >
-                {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                {expanded ? 'Meno' : 'Altro'}
+                {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                {generating ? 'Analisi...' : event.ai_analysis ? 'Rigenera' : 'Analizza AI'}
               </button>
-            ) : null}
+            </div>
           </div>
         </div>
       </div>

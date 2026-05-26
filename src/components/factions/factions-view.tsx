@@ -8,7 +8,8 @@ import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Shield, Loader2, Crown } from 'lucide-react'
+import { Plus, Shield, Loader2, Crown, Sparkles } from 'lucide-react'
+import { getGeminiKey, geminiGenerate, buildFactionPrompt } from '@/lib/gemini'
 import { cn } from '@/lib/utils'
 import type { Faction } from '@/types'
 
@@ -62,15 +63,37 @@ export function FactionsView({ factions: initial, relationships: initialRels, ca
 }
 
 function FactionCard({
-  faction, relationships, factions,
+  faction: initial, relationships, factions,
 }: {
   faction: Faction
   relationships: Array<{ faction_a_id: string; faction_b_id: string; relationship_type: string }>
   factions: Faction[]
 }) {
+  const [faction, setFaction] = useState(initial)
+  const [generating, setGenerating] = useState(false)
+  const updateFaction = useStore(s => s.updateFaction)
+  const getCampaignById = useStore(s => s.getCampaignById)
+
   const myRelationships = relationships.filter(
     r => r.faction_a_id === faction.id || r.faction_b_id === faction.id
   )
+
+  async function handleAI() {
+    const key = getGeminiKey()
+    if (!key) { alert('Configura prima la chiave API Gemini nella sidebar.'); return }
+    const campaign = getCampaignById(faction.campaign_id)
+    if (!campaign) return
+    setGenerating(true)
+    try {
+      const text = await geminiGenerate(key, buildFactionPrompt(campaign, faction))
+      updateFaction(faction.id, { ai_analysis: text })
+      setFaction(f => ({ ...f, ai_analysis: text }))
+    } catch (e) {
+      alert(`Errore AI: ${e instanceof Error ? e.message : 'Errore sconosciuto'}`)
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   return (
     <div
@@ -142,6 +165,24 @@ function FactionCard({
           <span className="text-foreground/70">{faction.motivation}</span>
         </div>
       )}
+
+      {faction.ai_analysis && (
+        <div className="pt-2 border-t border-border/50">
+          <p className="text-[10px] text-purple-400/80 uppercase tracking-wider mb-1 flex items-center gap-1">
+            <Sparkles className="w-2.5 h-2.5" /> Analisi AI
+          </p>
+          <p className="text-xs text-muted-foreground whitespace-pre-wrap">{faction.ai_analysis}</p>
+        </div>
+      )}
+
+      <button
+        onClick={handleAI}
+        disabled={generating}
+        className="flex items-center gap-1.5 text-xs text-purple-400/70 hover:text-purple-300 transition-colors disabled:opacity-50"
+      >
+        {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+        {generating ? 'Analisi in corso...' : faction.ai_analysis ? 'Rigenera analisi' : 'Analizza con AI'}
+      </button>
     </div>
   )
 }

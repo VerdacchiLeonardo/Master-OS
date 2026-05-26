@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'
-import { BookOpen, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronUp, Sparkles, Loader2 } from 'lucide-react'
 import type { SessionLog, Campaign } from '@/types'
+import { useStore } from '@/lib/store'
+import { getGeminiKey, geminiGenerate, buildSessionPrompt, parseSessionAIResponse } from '@/lib/gemini'
 
 interface SessionCardProps {
   session: SessionLog
@@ -12,9 +14,30 @@ interface SessionCardProps {
   onUpdated: (s: SessionLog) => void
 }
 
-export function SessionCard({ session }: SessionCardProps) {
+export function SessionCard({ session: initial, campaign }: SessionCardProps) {
+  const [session, setSession] = useState(initial)
   const [expanded, setExpanded] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const updateSessionLog = useStore(s => s.updateSessionLog)
   const keyEvents = (session.key_events as Array<{ title: string; importance: string }>) ?? []
+
+  async function handleAI(e: React.MouseEvent) {
+    e.stopPropagation()
+    const key = getGeminiKey()
+    if (!key) { alert('Configura prima la chiave API Gemini nella sidebar.'); return }
+    setGenerating(true)
+    try {
+      const raw = await geminiGenerate(key, buildSessionPrompt(campaign, session))
+      const { summary, consequences } = parseSessionAIResponse(raw)
+      updateSessionLog(session.id, { ai_summary: summary, ai_consequences: consequences, status: 'processed' })
+      setSession(s => ({ ...s, ai_summary: summary, ai_consequences: consequences, status: 'processed' }))
+      setExpanded(true)
+    } catch (err) {
+      alert(`Errore AI: ${err instanceof Error ? err.message : 'Errore sconosciuto'}`)
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   return (
     <div className="card-fantasy border border-border rounded-xl overflow-hidden">
@@ -55,6 +78,14 @@ export function SessionCard({ session }: SessionCardProps) {
           {session.ai_summary && (
             <Sparkles className="w-3.5 h-3.5 text-purple-400" />
           )}
+          <button
+            onClick={handleAI}
+            disabled={generating}
+            className="flex items-center gap-1 text-[10px] text-purple-400/70 hover:text-purple-300 transition-colors disabled:opacity-50 px-1.5 py-0.5 rounded border border-purple-500/20 hover:border-purple-500/40"
+          >
+            {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+            {generating ? '' : session.ai_summary ? 'Rigenera' : 'Elabora AI'}
+          </button>
           {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
         </div>
       </div>

@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import {
-  Sword, ScrollText, Globe, Map, Users, Shield, Target, BookOpen, ChevronLeft, Download, Upload, Sparkles
+  Sword, ScrollText, Globe, Map, Users, Shield, Target, BookOpen, ChevronLeft, Download, Upload, Sparkles, KeyRound, Check
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/lib/store'
+import { getGeminiKey, saveGeminiKey } from '@/lib/gemini'
 
 interface SidebarProps {
   campaignId?: string
@@ -28,6 +30,16 @@ export function Sidebar({ campaignId, campaignTitle }: SidebarProps) {
   const pathname = usePathname()
   const exportData = useStore(s => s.exportData)
   const importData = useStore(s => s.importData)
+  const [apiKey, setApiKey] = useState('')
+  const [keySaved, setKeySaved] = useState(false)
+
+  useEffect(() => { setApiKey(getGeminiKey()) }, [])
+
+  function handleSaveKey() {
+    saveGeminiKey(apiKey)
+    setKeySaved(true)
+    setTimeout(() => setKeySaved(false), 2000)
+  }
 
   function handleImport() {
     const input = document.createElement('input')
@@ -145,6 +157,38 @@ export function Sidebar({ campaignId, campaignTitle }: SidebarProps) {
           <Upload className="w-4 h-4" />
           Importa JSON
         </button>
+
+        {/* Gemini API key */}
+        <div className="pt-2 mt-1 border-t border-[hsl(var(--gold)/0.08)]">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium px-1 mb-1.5 flex items-center gap-1">
+            <Sparkles className="w-3 h-3" /> AI — Gemini
+          </p>
+          <div className="flex gap-1">
+            <div className="relative flex-1">
+              <KeyRound className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+              <input
+                type="password"
+                value={apiKey}
+                onChange={e => setApiKey(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSaveKey()}
+                placeholder="Incolla chiave API..."
+                className="w-full text-xs bg-muted/40 border border-border rounded pl-6 pr-2 py-1.5 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-[hsl(var(--gold)/0.4)] transition-colors"
+              />
+            </div>
+            <button
+              onClick={handleSaveKey}
+              className={cn(
+                'px-2 py-1 rounded text-xs border transition-all shrink-0',
+                keySaved
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                  : 'bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold))] border-[hsl(var(--gold)/0.3)] hover:bg-[hsl(var(--gold)/0.2)]'
+              )}
+            >
+              {keySaved ? <Check className="w-3.5 h-3.5" /> : 'Salva'}
+            </button>
+          </div>
+          {apiKey && <p className="text-[10px] text-emerald-500/70 mt-1 px-1">Chiave configurata</p>}
+        </div>
       </div>
     </aside>
   )
