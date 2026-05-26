@@ -29,6 +29,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={`${inter.variable} antialiased`}>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            var r = sessionStorage.getItem('spa_redirect');
+            if (r) {
+              sessionStorage.removeItem('spa_redirect');
+              history.replaceState(null, '', r);
+            }
+          })();
+        `}} />
         <StoreHydration />
         {children}
       </body>
