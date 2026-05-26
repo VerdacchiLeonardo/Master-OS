@@ -5,7 +5,7 @@ import { useStore } from '@/lib/store'
 
 export function StoreHydration() {
   useEffect(() => {
-    useStore.persist.rehydrate()
+    useStore.persist?.rehydrate?.()
   }, [])
   return null
 }
