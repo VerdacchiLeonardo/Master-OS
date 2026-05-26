@@ -1,6 +1,11 @@
 'use client'
 
 const FIX_SQL = [
+  "-- Aggiungi colonne mancanti se non esistono",
+  "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS display_name TEXT;",
+  "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;",
+  "",
+  "-- Ricrea la funzione trigger",
   "CREATE OR REPLACE FUNCTION handle_new_user()",
   "RETURNS TRIGGER AS $func$",
   "BEGIN",
@@ -14,6 +19,7 @@ const FIX_SQL = [
   "END;",
   "$func$ LANGUAGE plpgsql SECURITY DEFINER;",
   "",
+  "-- Ricrea il trigger",
   "DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;",
   "CREATE TRIGGER on_auth_user_created",
   "  AFTER INSERT ON auth.users",
