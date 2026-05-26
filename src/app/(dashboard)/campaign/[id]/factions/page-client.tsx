@@ -2,12 +2,13 @@
 
 import { useParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/shallow'
 import { FactionsView } from '@/components/factions/factions-view'
 
 export default function FactionsPage() {
   const { id } = useParams<{ id: string }>()
-  const factions = useStore(s => s.getFactionsByCampaign(id))
-  const relationships = useStore(s => s.getRelsByCampaign(id))
+  const factions = useStore(useShallow(s => s.getFactionsByCampaign(id)))
+  const relationships = useStore(useShallow(s => s.getRelsByCampaign(id)))
 
   return (
     <div className="p-8">

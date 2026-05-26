@@ -2,11 +2,12 @@
 
 import { useParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/shallow'
 import { TimelineView } from '@/components/timeline/timeline-view'
 
 export default function TimelinePage() {
   const { id } = useParams<{ id: string }>()
-  const events = useStore(s => s.getEventsByCampaign(id))
+  const events = useStore(useShallow(s => s.getEventsByCampaign(id)))
 
   return (
     <div className="p-8">

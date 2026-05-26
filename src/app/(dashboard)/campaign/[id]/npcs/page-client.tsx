@@ -2,12 +2,13 @@
 
 import { useParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/shallow'
 import { NPCsView } from '@/components/npcs/npcs-view'
 
 export default function NPCsPage() {
   const { id } = useParams<{ id: string }>()
-  const npcs = useStore(s => s.getNPCsByCampaign(id))
-  const factions = useStore(s => s.getFactionsByCampaign(id).map(f => ({ id: f.id, name: f.name, color: f.color })))
+  const npcs = useStore(useShallow(s => s.getNPCsByCampaign(id)))
+  const factions = useStore(useShallow(s => s.getFactionsByCampaign(id).map(f => ({ id: f.id, name: f.name, color: f.color }))))
 
   return (
     <div className="p-8">

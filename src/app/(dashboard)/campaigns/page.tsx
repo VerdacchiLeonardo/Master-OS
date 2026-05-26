@@ -1,14 +1,15 @@
 'use client'
 
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/shallow'
 import { Plus, Sword, ScrollText } from 'lucide-react'
 import { CampaignCard } from '@/components/campaign/campaign-card'
 import { CreateCampaignDialog } from '@/components/campaign/create-campaign-dialog'
 
 export default function CampaignsPage() {
-  const campaigns = useStore(s =>
+  const campaigns = useStore(useShallow(s =>
     Object.values(s.campaigns).sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-  )
+  ))
   const exportData = useStore(s => s.exportData)
   const importData = useStore(s => s.importData)
 

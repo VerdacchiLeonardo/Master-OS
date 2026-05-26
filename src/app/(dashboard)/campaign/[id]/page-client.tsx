@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/shallow'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { WorldStatePanel } from '@/components/world-state/world-state-panel'
@@ -15,10 +16,10 @@ export default function CampaignDashboard() {
   const { id } = useParams<{ id: string }>()
   const campaign = useStore(s => s.campaigns[id])
   const worldState = useStore(s => s.getLatestWorldState(id))
-  const recentEvents = useStore(s => s.getEventsByCampaign(id).slice(0, 5))
-  const sessions = useStore(s => s.getSessionsByCampaign(id).slice(0, 3))
-  const factionCount = useStore(s => s.getFactionsByCampaign(id).length)
-  const npcCount = useStore(s => s.getNPCsByCampaign(id).length)
+  const recentEvents = useStore(useShallow(s => s.getEventsByCampaign(id).slice(0, 5)))
+  const sessions = useStore(useShallow(s => s.getSessionsByCampaign(id).slice(0, 3)))
+  const factionCount = useStore(useShallow(s => s.getFactionsByCampaign(id))).length
+  const npcCount = useStore(useShallow(s => s.getNPCsByCampaign(id))).length
 
   if (!campaign) return null
 

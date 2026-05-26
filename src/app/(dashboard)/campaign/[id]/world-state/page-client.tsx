@@ -2,11 +2,12 @@
 
 import { useParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/shallow'
 import { WorldStateDetailView } from '@/components/world-state/world-state-detail'
 
 export default function WorldStatePage() {
   const { id } = useParams<{ id: string }>()
-  const worldStates = useStore(s => s.getAllWorldStates(id))
+  const worldStates = useStore(useShallow(s => s.getAllWorldStates(id)))
 
   return (
     <div className="p-8">

@@ -5,6 +5,6 @@ import { useRouter } from 'next/navigation'
 
 export default function RootPage() {
   const router = useRouter()
-  useEffect(() => { router.replace('/campaigns') }, [router])
+  useEffect(() => { router.replace('/campaigns') }, [])
   return null
 }

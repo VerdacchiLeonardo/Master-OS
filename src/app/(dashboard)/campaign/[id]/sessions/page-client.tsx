@@ -2,12 +2,13 @@
 
 import { useParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/shallow'
 import { SessionsView } from '@/components/session/sessions-view'
 
 export default function SessionsPage() {
   const { id } = useParams<{ id: string }>()
   const campaign = useStore(s => s.campaigns[id])
-  const sessions = useStore(s => s.getSessionsByCampaign(id))
+  const sessions = useStore(useShallow(s => s.getSessionsByCampaign(id)))
   const worldState = useStore(s => s.getLatestWorldState(id))
 
   if (!campaign) return null

@@ -2,12 +2,13 @@
 
 import { useParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
+import { useShallow } from 'zustand/shallow'
 import { MapsView } from '@/components/maps/maps-view'
 
 export default function MapsPage() {
   const { id } = useParams<{ id: string }>()
-  const maps = useStore(s => s.getMapsByCampaign(id))
-  const locations = useStore(s => s.getLocationsByCampaign(id))
+  const maps = useStore(useShallow(s => s.getMapsByCampaign(id)))
+  const locations = useStore(useShallow(s => s.getLocationsByCampaign(id)))
 
   return (
     <div className="p-8">
