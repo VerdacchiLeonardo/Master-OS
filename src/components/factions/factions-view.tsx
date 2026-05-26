@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Shield, Loader2, Swords, Crown, Users } from 'lucide-react'
+import { Plus, Shield, Loader2, Crown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Faction } from '@/types'
 
@@ -102,7 +102,6 @@ function FactionCard({
         <p className="text-xs text-muted-foreground line-clamp-2">{faction.description}</p>
       )}
 
-      {/* Stats */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">Influenza</span>
@@ -117,7 +116,6 @@ function FactionCard({
         <Progress value={faction.military_strength} className="h-1" indicatorClassName="bg-red-500" />
       </div>
 
-      {/* Relationships */}
       {myRelationships.length > 0 && (
         <div>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Relazioni</p>
@@ -155,9 +153,8 @@ function CreateFactionDialog({
   onCreated: (f: Faction) => void
   children: React.ReactNode
 }) {
-  const supabase = createClient()
+  const createFaction = useStore(s => s.createFaction)
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     name: '', description: '', faction_type: 'organization', alignment: '',
     motivation: '', status: 'active', influence_level: '50', military_strength: '50', color: '#8B5CF6',
@@ -165,31 +162,29 @@ function CreateFactionDialog({
 
   function set(k: string, v: string) { setForm(p => ({ ...p, [k]: v })) }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('factions')
-      .insert({
-        campaign_id: campaignId,
-        name: form.name,
-        description: form.description || null,
-        faction_type: form.faction_type,
-        alignment: form.alignment || null,
-        motivation: form.motivation || null,
-        status: form.status,
-        influence_level: parseInt(form.influence_level),
-        military_strength: parseInt(form.military_strength),
-        color: form.color || null,
-      })
-      .select()
-      .single()
+    if (!form.name.trim()) return
 
-    if (!error && data) {
-      onCreated(data)
-      setOpen(false)
-    }
-    setLoading(false)
+    const faction = createFaction({
+      campaign_id: campaignId,
+      name: form.name,
+      description: form.description || null,
+      faction_type: form.faction_type,
+      alignment: form.alignment || null,
+      motivation: form.motivation || null,
+      status: form.status as 'active',
+      influence_level: parseInt(form.influence_level),
+      military_strength: parseInt(form.military_strength),
+      color: form.color || null,
+      leader_npc_id: null,
+      secrets: null,
+      ai_analysis: null,
+    })
+
+    onCreated(faction)
+    setOpen(false)
+    setForm({ name: '', description: '', faction_type: 'organization', alignment: '', motivation: '', status: 'active', influence_level: '50', military_strength: '50', color: '#8B5CF6' })
   }
 
   return (
@@ -247,8 +242,8 @@ function CreateFactionDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annulla</Button>
-            <Button type="submit" disabled={loading || !form.name.trim()}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crea Fazione'}
+            <Button type="submit" disabled={!form.name.trim()}>
+              Crea Fazione
             </Button>
           </DialogFooter>
         </form>

@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Users, Skull, Sword, Heart, Eye, EyeOff, Loader2, Shield } from 'lucide-react'
+import { Plus, Users, Skull, Heart, Eye, EyeOff, Shield } from 'lucide-react'
 import { cn, generateInitials } from '@/lib/utils'
 import type { NPC } from '@/types'
 
@@ -42,7 +42,6 @@ interface NPCsViewProps {
 export function NPCsView({ npcs: initial, factions, campaignId }: NPCsViewProps) {
   const [npcs, setNpcs] = useState<NPC[]>(initial)
   const [filter, setFilter] = useState<string>('all')
-  const supabase = createClient()
 
   const filtered = filter === 'all' ? npcs : npcs.filter(n => n.role === filter || n.status === filter)
 
@@ -52,7 +51,6 @@ export function NPCsView({ npcs: initial, factions, campaignId }: NPCsViewProps)
 
   return (
     <div>
-      {/* Controls */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-1">
           {['all', 'villain', 'ally', 'major', 'minor'].map(f => (
@@ -86,7 +84,7 @@ export function NPCsView({ npcs: initial, factions, campaignId }: NPCsViewProps)
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {filtered.map((npc, i) => (
+          {filtered.map((npc) => (
             <NPCCard key={npc.id} npc={npc} factions={factions} />
           ))}
         </div>
@@ -165,9 +163,8 @@ function CreateNPCDialog({
   onCreated: (npc: NPC) => void
   children: React.ReactNode
 }) {
-  const supabase = createClient()
+  const createNPC = useStore(s => s.createNPC)
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     name: '', title: '', description: '', role: 'minor', status: 'alive',
     faction_id: '', alignment: '', motivation: '', secrets: '', is_player_known: true,
@@ -177,33 +174,29 @@ function CreateNPCDialog({
     setForm(p => ({ ...p, [k]: v }))
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('npcs')
-      .insert({
-        campaign_id: campaignId,
-        name: form.name,
-        title: form.title || null,
-        description: form.description || null,
-        role: form.role,
-        status: form.status,
-        faction_id: form.faction_id || null,
-        alignment: form.alignment || null,
-        motivation: form.motivation || null,
-        secrets: form.secrets || null,
-        is_player_known: form.is_player_known,
-      })
-      .select()
-      .single()
+    if (!form.name.trim()) return
 
-    if (!error && data) {
-      onCreated(data)
-      setOpen(false)
-      setForm({ name: '', title: '', description: '', role: 'minor', status: 'alive', faction_id: '', alignment: '', motivation: '', secrets: '', is_player_known: true })
-    }
-    setLoading(false)
+    const npc = createNPC({
+      campaign_id: campaignId,
+      name: form.name,
+      title: form.title || null,
+      description: form.description || null,
+      role: form.role as 'minor',
+      status: form.status as 'alive',
+      faction_id: form.faction_id || null,
+      alignment: form.alignment || null,
+      motivation: form.motivation || null,
+      secrets: form.secrets || null,
+      is_player_known: form.is_player_known,
+      current_location_id: null,
+      ai_notes: null,
+    })
+
+    onCreated(npc)
+    setOpen(false)
+    setForm({ name: '', title: '', description: '', role: 'minor', status: 'alive', faction_id: '', alignment: '', motivation: '', secrets: '', is_player_known: true })
   }
 
   return (
@@ -276,9 +269,7 @@ function CreateNPCDialog({
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annulla</Button>
-            <Button type="submit" disabled={loading || !form.name.trim()}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crea NPC'}
-            </Button>
+            <Button type="submit" disabled={!form.name.trim()}>Crea NPC</Button>
           </DialogFooter>
         </form>
       </DialogContent>

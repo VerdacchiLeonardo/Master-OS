@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, Map, MapPin, Loader2, ZoomIn, ZoomOut, Eye } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { Map, MapPin, ZoomIn, ZoomOut, Plus, Link } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { MapRecord, Location } from '@/types'
 
@@ -36,7 +36,6 @@ export function MapsView({ maps: initial, locations: initialLocations, campaignI
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
           {maps.map(map => (
@@ -57,15 +56,14 @@ export function MapsView({ maps: initial, locations: initialLocations, campaignI
           ))}
         </div>
 
-        <UploadMapDialog campaignId={campaignId} onCreated={onMapCreated}>
+        <AddMapDialog campaignId={campaignId} onCreated={onMapCreated}>
           <Button size="sm" className="gap-1.5">
-            <Upload className="w-3.5 h-3.5" />
-            Carica Mappa
+            <Plus className="w-3.5 h-3.5" />
+            Aggiungi Mappa
           </Button>
-        </UploadMapDialog>
+        </AddMapDialog>
       </div>
 
-      {/* Map viewer */}
       {selectedMap ? (
         <MapViewer
           map={selectedMap}
@@ -76,13 +74,13 @@ export function MapsView({ maps: initial, locations: initialLocations, campaignI
       ) : (
         <div className="card-fantasy border border-border rounded-xl p-12 text-center">
           <Map className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground text-sm mb-4">Nessuna mappa caricata</p>
-          <UploadMapDialog campaignId={campaignId} onCreated={onMapCreated}>
+          <p className="text-muted-foreground text-sm mb-4">Nessuna mappa aggiunta</p>
+          <AddMapDialog campaignId={campaignId} onCreated={onMapCreated}>
             <Button variant="outline">
-              <Upload className="w-4 h-4 mr-2" />
-              Carica la prima mappa
+              <Plus className="w-4 h-4 mr-2" />
+              Aggiungi la prima mappa
             </Button>
-          </UploadMapDialog>
+          </AddMapDialog>
         </div>
       )}
     </div>
@@ -112,7 +110,6 @@ function MapViewer({
 
   return (
     <div className="card-fantasy border border-border rounded-xl overflow-hidden">
-      {/* Controls */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Map className="w-3.5 h-3.5" />
@@ -143,7 +140,6 @@ function MapViewer({
         </div>
       </div>
 
-      {/* Map image */}
       <div
         ref={containerRef}
         className={cn('relative overflow-auto bg-[hsl(220,15%,5%)]', addingPin && 'cursor-crosshair')}
@@ -160,12 +156,10 @@ function MapViewer({
           />
         </div>
 
-        {/* Location pins */}
         {locations.map(loc => (
           <LocationPin key={loc.id} location={loc} />
         ))}
 
-        {/* Pending pin */}
         {pendingPin && (
           <AddLocationPinDialog
             mapId={map.id}
@@ -185,7 +179,6 @@ function MapViewer({
         )}
       </div>
 
-      {/* Location list */}
       {locations.length > 0 && (
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -226,51 +219,35 @@ function LocationPin({ location }: { location: Location }) {
   )
 }
 
-function UploadMapDialog({
+function AddMapDialog({
   campaignId, onCreated, children,
 }: {
   campaignId: string
   onCreated: (map: MapRecord) => void
   children: React.ReactNode
 }) {
-  const supabase = createClient()
+  const createMap = useStore(s => s.createMap)
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
-  const [form, setForm] = useState({ title: '', map_type: 'world', description: '' })
+  const [form, setForm] = useState({ title: '', map_type: 'world', image_url: '' })
 
   function set(k: string, v: string) { setForm(p => ({ ...p, [k]: v })) }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!file || !form.title) return
-    setLoading(true)
+    if (!form.title.trim() || !form.image_url.trim()) return
 
-    const ext = file.name.split('.').pop()
-    const path = `${campaignId}/${Date.now()}.${ext}`
+    const map = createMap({
+      campaign_id: campaignId,
+      title: form.title,
+      description: null,
+      map_type: form.map_type,
+      image_url: form.image_url,
+      is_primary: false,
+    })
 
-    const { error: uploadError } = await supabase.storage.from('maps').upload(path, file)
-    if (uploadError) { setLoading(false); return }
-
-    const { data: { publicUrl } } = supabase.storage.from('maps').getPublicUrl(path)
-
-    const { data, error } = await supabase
-      .from('maps')
-      .insert({
-        campaign_id: campaignId,
-        title: form.title,
-        description: form.description || null,
-        map_type: form.map_type,
-        image_url: publicUrl,
-      })
-      .select()
-      .single()
-
-    if (!error && data) {
-      onCreated(data)
-      setOpen(false)
-    }
-    setLoading(false)
+    onCreated(map)
+    setOpen(false)
+    setForm({ title: '', map_type: 'world', image_url: '' })
   }
 
   return (
@@ -278,7 +255,7 @@ function UploadMapDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Carica Mappa</DialogTitle>
+          <DialogTitle>Aggiungi Mappa</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -293,32 +270,23 @@ function UploadMapDialog({
             </Select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-foreground/80 mb-1">File Immagine *</label>
-            <div
-              className={cn(
-                'border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer',
-                'hover:border-[hsl(var(--gold)/0.4)] transition-colors',
-                file && 'border-[hsl(var(--gold)/0.4)] bg-[hsl(var(--gold)/0.04)]'
-              )}
-              onClick={() => document.getElementById('map-file-input')?.click()}
-            >
-              <input id="map-file-input" type="file" accept="image/*" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
-              {file ? (
-                <p className="text-sm text-[hsl(var(--gold))]">{file.name}</p>
-              ) : (
-                <>
-                  <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Clicca per selezionare</p>
-                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WebP</p>
-                </>
-              )}
-            </div>
+            <label className="block text-xs font-medium text-foreground/80 mb-1 flex items-center gap-1">
+              <Link className="w-3 h-3" />
+              URL Immagine *
+            </label>
+            <input
+              type="url"
+              value={form.image_url}
+              onChange={e => set('image_url', e.target.value)}
+              placeholder="https://esempio.com/mappa.jpg"
+              className="input-fantasy w-full"
+              required
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">Carica l'immagine su Imgur, Discord o altro servizio e incolla l'URL qui.</p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annulla</Button>
-            <Button type="submit" disabled={loading || !file || !form.title}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Carica'}
-            </Button>
+            <Button type="submit" disabled={!form.title.trim() || !form.image_url.trim()}>Aggiungi</Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -337,23 +305,28 @@ function AddLocationPinDialog({
   onCancel: () => void
   children: React.ReactNode
 }) {
-  const supabase = createClient()
+  const createLocation = useStore(s => s.createLocation)
   const [open, setOpen] = useState(true)
-  const [loading, setLoading] = useState(false)
   const [name, setName] = useState('')
   const [locType, setLocType] = useState('poi')
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('locations')
-      .insert({ campaign_id: campaignId, map_id: mapId, name, location_type: locType, pin_x: pinX, pin_y: pinY })
-      .select()
-      .single()
-    if (!error && data) onCreated(data)
-    else { setLoading(false); setOpen(false); onCancel() }
+
+    const loc = createLocation({
+      campaign_id: campaignId,
+      map_id: mapId,
+      name,
+      location_type: locType,
+      description: null,
+      pin_x: pinX,
+      pin_y: pinY,
+      status: 'known',
+      lore: null,
+    })
+
+    onCreated(loc)
   }
 
   return (
@@ -379,9 +352,7 @@ function AddLocationPinDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => { setOpen(false); onCancel() }}>Annulla</Button>
-            <Button type="submit" disabled={loading || !name.trim()}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Aggiungi'}
-            </Button>
+            <Button type="submit" disabled={!name.trim()}>Aggiungi</Button>
           </DialogFooter>
         </form>
       </DialogContent>

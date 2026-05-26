@@ -1,13 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { TimelineEventCard } from './event-card'
 import { CreateEventDialog } from './create-event-dialog'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Plus, Filter } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import type { TimelineEvent } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -28,7 +25,6 @@ interface TimelineViewProps {
 export function TimelineView({ events: initialEvents, campaignId }: TimelineViewProps) {
   const [events, setEvents] = useState<TimelineEvent[]>(initialEvents)
   const [filter, setFilter] = useState('all')
-  const router = useRouter()
 
   const filtered = filter === 'all' ? events : events.filter(e => e.status === filter)
 

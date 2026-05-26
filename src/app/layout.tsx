@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { StoreHydration } from '@/components/store-hydration'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -27,7 +28,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className={`${inter.variable} antialiased`}>{children}</body>
+      <body className={`${inter.variable} antialiased`}>
+        <StoreHydration />
+        {children}
+      </body>
     </html>
   )
 }

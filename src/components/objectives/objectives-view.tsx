@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Target, CheckCircle, XCircle, Clock, Loader2, Trophy } from 'lucide-react'
+import { Plus, Target, CheckCircle, XCircle, Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Objective } from '@/types'
 
@@ -47,7 +47,6 @@ export function ObjectivesView({ objectives: initial, campaignId, finalObjective
 
   return (
     <div className="space-y-6">
-      {/* Final objective banner */}
       {finalObjective && (
         <div className="card-fantasy border border-[hsl(var(--gold)/0.3)] rounded-xl p-5 bg-[hsl(var(--gold)/0.04)]">
           <div className="flex items-center gap-2 mb-2">
@@ -58,7 +57,6 @@ export function ObjectivesView({ objectives: initial, campaignId, finalObjective
         </div>
       )}
 
-      {/* Controls */}
       <div className="flex justify-end">
         <CreateObjectiveDialog campaignId={campaignId} onCreated={onCreated}>
           <Button size="sm" className="gap-1.5">
@@ -68,7 +66,6 @@ export function ObjectivesView({ objectives: initial, campaignId, finalObjective
         </CreateObjectiveDialog>
       </div>
 
-      {/* Sections */}
       {active.length > 0 && (
         <ObjectiveSection title="Obiettivi Attivi" objectives={active} onUpdate={onUpdated} />
       )}
@@ -115,29 +112,20 @@ function ObjectiveSection({
 }
 
 function ObjectiveCard({ objective: obj, onUpdate }: { objective: Objective; onUpdate: (o: Objective) => void }) {
-  const supabase = createClient()
+  const updateObjective = useStore(s => s.updateObjective)
   const style = TYPE_STYLES[obj.objective_type] ?? TYPE_STYLES.side
   const Icon = style.icon
 
-  async function updateProgress(delta: number) {
+  function updateProgress(delta: number) {
     const newProgress = Math.max(0, Math.min(100, obj.progress_percent + delta))
-    const { data } = await supabase
-      .from('objectives')
-      .update({ progress_percent: newProgress })
-      .eq('id', obj.id)
-      .select()
-      .single()
-    if (data) onUpdate(data)
+    updateObjective(obj.id, { progress_percent: newProgress })
+    onUpdate({ ...obj, progress_percent: newProgress })
   }
 
-  async function updateStatus(status: string) {
-    const { data } = await supabase
-      .from('objectives')
-      .update({ status, progress_percent: status === 'completed' ? 100 : obj.progress_percent })
-      .eq('id', obj.id)
-      .select()
-      .single()
-    if (data) onUpdate(data)
+  function updateStatus(status: string) {
+    const progress_percent = status === 'completed' ? 100 : obj.progress_percent
+    updateObjective(obj.id, { status: status as Objective['status'], progress_percent })
+    onUpdate({ ...obj, status: status as Objective['status'], progress_percent })
   }
 
   return (
@@ -221,9 +209,8 @@ function CreateObjectiveDialog({
   onCreated: (o: Objective) => void
   children: React.ReactNode
 }) {
-  const supabase = createClient()
+  const createObjective = useStore(s => s.createObjective)
   const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     title: '', description: '', objective_type: 'main', status: 'active',
     rewards: '', consequences_if_failed: '',
@@ -231,28 +218,24 @@ function CreateObjectiveDialog({
 
   function set(k: string, v: string) { setForm(p => ({ ...p, [k]: v })) }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('objectives')
-      .insert({
-        campaign_id: campaignId,
-        title: form.title,
-        description: form.description || null,
-        objective_type: form.objective_type,
-        status: form.status,
-        rewards: form.rewards || null,
-        consequences_if_failed: form.consequences_if_failed || null,
-      })
-      .select()
-      .single()
+    if (!form.title.trim()) return
 
-    if (!error && data) {
-      onCreated(data)
-      setOpen(false)
-    }
-    setLoading(false)
+    const obj = createObjective({
+      campaign_id: campaignId,
+      title: form.title,
+      description: form.description || null,
+      objective_type: form.objective_type as 'main',
+      status: form.status as 'active',
+      progress_percent: 0,
+      rewards: form.rewards || null,
+      consequences_if_failed: form.consequences_if_failed || null,
+    })
+
+    onCreated(obj)
+    setOpen(false)
+    setForm({ title: '', description: '', objective_type: 'main', status: 'active', rewards: '', consequences_if_failed: '' })
   }
 
   return (
@@ -297,9 +280,7 @@ function CreateObjectiveDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annulla</Button>
-            <Button type="submit" disabled={loading || !form.title.trim()}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crea Obiettivo'}
-            </Button>
+            <Button type="submit" disabled={!form.title.trim()}>Crea Obiettivo</Button>
           </DialogFooter>
         </form>
       </DialogContent>
