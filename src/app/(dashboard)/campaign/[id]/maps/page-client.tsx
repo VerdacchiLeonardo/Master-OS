@@ -11,7 +11,7 @@ export default function MapsPage() {
   const locations = useStore(useShallow(s => s.getLocationsByCampaign(id)))
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-display font-semibold mb-1">Mappe</h1>
         <p className="text-muted-foreground text-sm">Aggiungi mappe e geotaga i luoghi della campagna</p>

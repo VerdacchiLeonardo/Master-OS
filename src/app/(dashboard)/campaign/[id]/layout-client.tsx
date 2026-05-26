@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
-import { Sidebar } from '@/components/layout/sidebar'
+import { MobileAwareLayout } from '@/components/layout/mobile-aware-layout'
 import Link from 'next/link'
 
 export function CampaignLayoutClient({ children }: { children: React.ReactNode }) {
@@ -23,9 +23,8 @@ export function CampaignLayoutClient({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <Sidebar campaignId={campaign.id} campaignTitle={campaign.title} />
-      <main className="flex-1 ml-60 min-h-screen">{children}</main>
-    </div>
+    <MobileAwareLayout campaignId={campaign.id} campaignTitle={campaign.title}>
+      {children}
+    </MobileAwareLayout>
   )
 }

@@ -11,7 +11,7 @@ export default function ObjectivesPage() {
   const finalObjective = useStore(s => s.campaigns[id]?.final_objective ?? null)
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-display font-semibold mb-1">Obiettivi</h1>
         <p className="text-muted-foreground text-sm">Missioni principali, secondarie, segreti e obiettivi personali</p>

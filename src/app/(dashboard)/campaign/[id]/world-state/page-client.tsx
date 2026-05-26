@@ -10,7 +10,7 @@ export default function WorldStatePage() {
   const worldStates = useStore(useShallow(s => s.getAllWorldStates(id)))
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-display font-semibold mb-1">World State</h1>
         <p className="text-muted-foreground text-sm">Evoluzione del mondo sessione per sessione</p>

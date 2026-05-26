@@ -33,7 +33,7 @@ export default function CampaignDashboard() {
   ]
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 md:p-8 space-y-8">
       {/* Header */}
       <div className="relative">
         <div className="absolute -top-4 -left-4 w-48 h-48 bg-[hsl(var(--arcane)/0.04)] rounded-full blur-3xl pointer-events-none" />

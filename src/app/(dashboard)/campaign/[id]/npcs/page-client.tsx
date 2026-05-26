@@ -11,7 +11,7 @@ export default function NPCsPage() {
   const factions = useStore(useShallow(s => s.getFactionsByCampaign(id).map(f => ({ id: f.id, name: f.name, color: f.color }))))
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-display font-semibold mb-1">Personaggi Non Giocanti</h1>
         <p className="text-muted-foreground text-sm">Gestisci gli NPC della campagna — alleati, nemici, neutri</p>

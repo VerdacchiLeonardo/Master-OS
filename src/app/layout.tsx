@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { StoreHydration } from '@/components/store-hydration'
@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   },
   description: 'Narrative Intelligence System for Dungeon Masters',
   keywords: ['D&D', 'Dungeon Master', 'Campaign Manager', 'AI', 'Narrative'],
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

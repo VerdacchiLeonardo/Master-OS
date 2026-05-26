@@ -11,7 +11,7 @@ export default function FactionsPage() {
   const relationships = useStore(useShallow(s => s.getRelsByCampaign(id)))
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-display font-semibold mb-1">Fazioni</h1>
         <p className="text-muted-foreground text-sm">Regni, gilde, ordini e organizzazioni del mondo</p>

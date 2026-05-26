@@ -14,7 +14,7 @@ export default function SessionsPage() {
   if (!campaign) return null
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-display font-semibold mb-1">Session Logs</h1>
         <p className="text-muted-foreground text-sm">Documenta le sessioni della campagna</p>

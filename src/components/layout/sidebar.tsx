@@ -13,6 +13,8 @@ import { getGeminiKey, saveGeminiKey } from '@/lib/gemini'
 interface SidebarProps {
   campaignId?: string
   campaignTitle?: string
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
 const campaignNavItems = (id: string) => [
@@ -26,7 +28,7 @@ const campaignNavItems = (id: string) => [
   { href: `/campaign/${id}/objectives`, label: 'Obiettivi', icon: Target },
 ]
 
-export function Sidebar({ campaignId, campaignTitle }: SidebarProps) {
+export function Sidebar({ campaignId, campaignTitle, mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
   const exportData = useStore(s => s.exportData)
   const importData = useStore(s => s.importData)
@@ -59,7 +61,11 @@ export function Sidebar({ campaignId, campaignTitle }: SidebarProps) {
   }
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-60 flex flex-col bg-[hsl(220,15%,7%)] border-r border-[hsl(var(--gold)/0.12)] z-30">
+    <aside className={cn(
+      'fixed left-0 top-0 bottom-0 w-64 flex flex-col bg-[hsl(220,15%,7%)] border-r border-[hsl(var(--gold)/0.12)] z-30',
+      'transition-transform duration-300 ease-in-out',
+      mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+    )}>
       {/* Logo */}
       <div className="px-5 py-5 border-b border-[hsl(var(--gold)/0.1)]">
         <Link href="/campaigns" className="flex items-center gap-2.5 group">
@@ -110,6 +116,7 @@ export function Sidebar({ campaignId, campaignTitle }: SidebarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onMobileClose}
                   className={cn(
                     'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-all duration-150 group',
                     isActive

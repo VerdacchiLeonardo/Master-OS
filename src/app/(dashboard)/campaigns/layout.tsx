@@ -1,10 +1,5 @@
-import { Sidebar } from '@/components/layout/sidebar'
+import { MobileAwareLayout } from '@/components/layout/mobile-aware-layout'
 
 export default function CampaignsLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-background flex">
-      <Sidebar />
-      <main className="flex-1 ml-60 min-h-screen">{children}</main>
-    </div>
-  )
+  return <MobileAwareLayout>{children}</MobileAwareLayout>
 }

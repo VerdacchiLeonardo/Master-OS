@@ -31,10 +31,10 @@ export default function CampaignsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-start justify-between mb-8">
+    <div className="p-4 md:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 md:mb-8">
         <div>
-          <h1 className="text-2xl font-display font-semibold text-foreground mb-1">Le mie Campagne</h1>
+          <h1 className="text-xl md:text-2xl font-display font-semibold text-foreground mb-1">Le mie Campagne</h1>
           <p className="text-muted-foreground text-sm">Gestisci le tue campagne D&D</p>
         </div>
         <div className="flex items-center gap-2">
@@ -42,12 +42,12 @@ export default function CampaignsPage() {
             Importa
           </button>
           <button onClick={exportData} className="px-3 py-2 border border-border text-muted-foreground rounded-md text-sm hover:text-foreground hover:bg-muted/60 transition-colors">
-            Esporta JSON
+            Esporta
           </button>
           <CreateCampaignDialog>
             <button className="flex items-center gap-2 px-4 py-2 bg-[hsl(var(--gold))] text-background rounded-md text-sm font-medium hover:bg-[hsl(var(--gold)/0.85)] transition-colors">
               <Plus className="w-4 h-4" />
-              Nuova Campagna
+              Nuova
             </button>
           </CreateCampaignDialog>
         </div>
