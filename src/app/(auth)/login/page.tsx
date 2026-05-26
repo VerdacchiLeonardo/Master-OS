@@ -31,7 +31,7 @@ export default function LoginPage() {
       })
 
       if (error) {
-        setDebugInfo(`Codice: ${error.status ?? 'n/a'} | Status: ${error.name}\nMessaggio: ${error.message}`)
+        setDebugInfo(prev => `${prev ?? ''}\n---\nCodice: ${error.status ?? 'n/a'} | Status: ${error.name}\nMessaggio: ${error.message}`)
         setError(error.message)
       } else {
         setSent(true)
