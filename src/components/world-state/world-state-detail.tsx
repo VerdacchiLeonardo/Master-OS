@@ -1,11 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Globe, TrendingUp, Activity, Sparkles, Loader2 } from 'lucide-react'
-import type { WorldState, ProgressAnalysis } from '@/types'
+import { Globe, TrendingUp, Target } from 'lucide-react'
+import type { WorldState } from '@/types'
 import { cn } from '@/lib/utils'
 
 type WorldStateNumericKey =
@@ -38,10 +36,7 @@ interface WorldStateDetailViewProps {
   campaignId: string
 }
 
-export function WorldStateDetailView({ worldStates, campaignId }: WorldStateDetailViewProps) {
-  const [progressAnalysis, setProgressAnalysis] = useState<ProgressAnalysis | null>(null)
-  const [analyzing, setAnalyzing] = useState(false)
-
+export function WorldStateDetailView({ worldStates }: WorldStateDetailViewProps) {
   const current = worldStates[0]
   const previous = worldStates[1]
 
@@ -52,23 +47,6 @@ export function WorldStateDetailView({ worldStates, campaignId }: WorldStateDeta
   function getDelta(key: WorldStateNumericKey): number | null {
     if (!current || !previous) return null
     return getVal(current, key) - getVal(previous, key)
-  }
-
-  async function handleAnalyzeProgress() {
-    setAnalyzing(true)
-    try {
-      const res = await fetch('/api/ai/narrative-progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ campaignId }),
-      })
-      if (res.ok) {
-        const { progress } = await res.json()
-        setProgressAnalysis(progress)
-      }
-    } finally {
-      setAnalyzing(false)
-    }
   }
 
   if (worldStates.length === 0) {
@@ -134,96 +112,27 @@ export function WorldStateDetailView({ worldStates, campaignId }: WorldStateDeta
           )}
         </div>
 
-        {/* AI Progress Analysis */}
-        <div className="card-fantasy border border-[hsl(var(--arcane)/0.2)] rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display font-medium flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              Analisi Progressione
-            </h3>
-            <Button
-              size="sm"
-              variant="arcane"
-              onClick={handleAnalyzeProgress}
-              disabled={analyzing}
-              className="text-xs gap-1.5"
-            >
-              {analyzing ? (
-                <><Loader2 className="w-3.5 h-3.5 animate-spin" />Analisi...</>
-              ) : (
-                <><Activity className="w-3.5 h-3.5" />Analizza</>
-              )}
-            </Button>
+        {/* Objective progress manual */}
+        <div className="card-fantasy border border-border rounded-xl p-5">
+          <h3 className="font-display font-medium flex items-center gap-2 mb-4">
+            <Target className="w-4 h-4 text-[hsl(var(--gold))]" />
+            Progresso Obiettivo
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Completamento</span>
+              <span className="text-2xl font-display font-bold text-[hsl(var(--gold))]">
+                {current.objective_progress}%
+              </span>
+            </div>
+            <Progress
+              value={current.objective_progress}
+              indicatorClassName="bg-gradient-to-r from-[hsl(var(--gold-dim))] to-[hsl(var(--gold))]"
+            />
+            <p className="text-xs text-muted-foreground">
+              Aggiornato manualmente tramite la sezione Obiettivi, o automaticamente quando elabori una sessione con AI.
+            </p>
           </div>
-
-          {progressAnalysis ? (
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs text-muted-foreground">Completamento Stimato</span>
-                  <span className="text-2xl font-display font-bold text-[hsl(var(--gold))]">
-                    {progressAnalysis.completion_estimate_percent}%
-                  </span>
-                </div>
-                <Progress
-                  value={progressAnalysis.completion_estimate_percent}
-                  indicatorClassName="bg-gradient-to-r from-[hsl(var(--gold-dim))] to-[hsl(var(--gold))]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="bg-muted/30 rounded p-2.5">
-                  <p className="text-muted-foreground mb-0.5">Sessioni al Finale</p>
-                  <p className="font-bold text-foreground text-lg font-display">{progressAnalysis.sessions_to_finale_estimate}</p>
-                </div>
-                <div className="bg-muted/30 rounded p-2.5">
-                  <p className="text-muted-foreground mb-0.5">Momentum</p>
-                  <p className={cn(
-                    'font-medium capitalize',
-                    progressAnalysis.narrative_momentum === 'ascending' ? 'text-emerald-400' :
-                    progressAnalysis.narrative_momentum === 'descending' ? 'text-red-400' : 'text-yellow-400'
-                  )}>
-                    {progressAnalysis.narrative_momentum === 'ascending' ? '↑ Crescente' :
-                     progressAnalysis.narrative_momentum === 'descending' ? '↓ Calante' : '→ Stabile'}
-                  </p>
-                </div>
-              </div>
-
-              {progressAnalysis.biggest_threats?.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-red-400 mb-1.5">Minacce Principali</p>
-                  <div className="space-y-1">
-                    {progressAnalysis.biggest_threats.map((t, i) => (
-                      <p key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                        <span className="text-red-500 shrink-0">▸</span>
-                        {t}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {progressAnalysis.analysis && (
-                <div className="bg-[hsl(var(--arcane)/0.08)] rounded p-3">
-                  <p className="text-xs text-muted-foreground">{progressAnalysis.analysis}</p>
-                </div>
-              )}
-
-              {progressAnalysis.recommendation && (
-                <div className="bg-[hsl(var(--gold)/0.05)] border border-[hsl(var(--gold)/0.15)] rounded p-3">
-                  <p className="text-xs font-medium text-[hsl(var(--gold))] mb-1">Consiglio</p>
-                  <p className="text-xs text-foreground/80">{progressAnalysis.recommendation}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Activity className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
-              <p className="text-xs text-muted-foreground">
-                Clicca "Analizza" per una valutazione AI della progressione narrativa
-              </p>
-            </div>
-          )}
         </div>
       </div>
 
