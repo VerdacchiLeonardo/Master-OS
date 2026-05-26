@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Map, MapPin, ZoomIn, ZoomOut, Plus, Link } from 'lucide-react'
+import { Map, MapPin, ZoomIn, ZoomOut, Plus, Link, Sparkles, Loader2, Upload, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { MapRecord, Location } from '@/types'
+import { getGeminiKey, geminiAnalyzeMapFile, geminiAnalyzeMapUrl, type MapLocations } from '@/lib/gemini'
 
 const MAP_TYPES = ['world', 'region', 'city', 'dungeon', 'building', 'encounter']
 
@@ -98,6 +99,7 @@ function MapViewer({
   const [zoom, setZoom] = useState(1)
   const [addingPin, setAddingPin] = useState(false)
   const [pendingPin, setPendingPin] = useState<{ x: number; y: number } | null>(null)
+  const [showScan, setShowScan] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   function handleMapClick(e: React.MouseEvent<HTMLDivElement>) {
@@ -137,8 +139,24 @@ function MapViewer({
             <MapPin className="w-3 h-3" />
             {addingPin ? 'Clicca sulla mappa' : 'Aggiungi Luogo'}
           </button>
+          <button
+            onClick={() => setShowScan(true)}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-all text-purple-400/70 hover:text-purple-300 border border-purple-500/20 hover:border-purple-500/40"
+          >
+            <Sparkles className="w-3 h-3" />
+            Scansiona con AI
+          </button>
         </div>
       </div>
+
+      {showScan && (
+        <MapScanDialog
+          map={map}
+          campaignId={campaignId}
+          onLocationsAdded={(locs) => { locs.forEach(onLocationAdded); setShowScan(false) }}
+          onClose={() => setShowScan(false)}
+        />
+      )}
 
       <div
         ref={containerRef}
@@ -217,6 +235,254 @@ function LocationPin({ location }: { location: Location }) {
       )}
     </div>
   )
+}
+
+const LOCATION_TYPE_MAP: Record<keyof MapLocations, string> = {
+  cities: 'city', seas: 'region', islands: 'landmark',
+  mountains: 'landmark', forests: 'region', regions: 'region', other: 'poi',
+}
+
+const CATEGORY_LABELS: Record<keyof MapLocations, string> = {
+  cities: 'Città / Villaggi', seas: 'Mari / Oceani / Fiumi', islands: 'Isole',
+  mountains: 'Monti / Catene', forests: 'Foreste', regions: 'Regioni', other: 'Altro',
+}
+
+function MapScanDialog({
+  map, campaignId, onLocationsAdded, onClose,
+}: {
+  map: MapRecord
+  campaignId: string
+  onLocationsAdded: (locs: Location[]) => void
+  onClose: () => void
+}) {
+  const createLocation = useStore(s => s.createLocation)
+  const [step, setStep] = useState<'input' | 'loading' | 'results'>('input')
+  const [error, setError] = useState<string | null>(null)
+  const [locations, setLocations] = useState<MapLocations | null>(null)
+  const [selected, setSelected] = useState<Record<string, boolean>>({})
+
+  function toggleItem(name: string) {
+    setSelected(prev => ({ ...prev, [name]: !prev[name] }))
+  }
+
+  function selectAll(names: string[], value: boolean) {
+    setSelected(prev => {
+      const next = { ...prev }
+      names.forEach(n => { next[n] = value })
+      return next
+    })
+  }
+
+  function initSelected(locs: MapLocations) {
+    const s: Record<string, boolean> = {}
+    Object.values(locs).flat().forEach((name: string) => { s[name] = true })
+    setSelected(s)
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const key = getGeminiKey()
+    if (!key) { setError('Configura prima la chiave API Gemini nella sidebar.'); return }
+    setStep('loading')
+    setError(null)
+    try {
+      const base64 = await fileToBase64(file)
+      const result = await geminiAnalyzeMapFile(key, base64, file.type || 'image/jpeg')
+      setLocations(result)
+      initSelected(result)
+      setStep('results')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Errore sconosciuto')
+      setStep('input')
+    }
+  }
+
+  async function handleUseUrl() {
+    const key = getGeminiKey()
+    if (!key) { setError('Configura prima la chiave API Gemini nella sidebar.'); return }
+    setStep('loading')
+    setError(null)
+    try {
+      const result = await geminiAnalyzeMapUrl(key, map.image_url)
+      setLocations(result)
+      initSelected(result)
+      setStep('results')
+    } catch (err) {
+      setError(`Impossibile analizzare tramite URL: ${err instanceof Error ? err.message : 'Errore'}. Prova a caricare il file direttamente.`)
+      setStep('input')
+    }
+  }
+
+  function handleSave() {
+    if (!locations) return
+    const saved: Location[] = []
+    ;(Object.keys(locations) as (keyof MapLocations)[]).forEach(cat => {
+      locations[cat].forEach((name: string) => {
+        if (!selected[name]) return
+        const loc = createLocation({
+          campaign_id: campaignId,
+          map_id: map.id,
+          name,
+          location_type: LOCATION_TYPE_MAP[cat],
+          description: null,
+          pin_x: null,
+          pin_y: null,
+          status: 'known',
+          lore: null,
+        })
+        saved.push(loc)
+      })
+    })
+    onLocationsAdded(saved)
+  }
+
+  const totalItems = locations ? Object.values(locations).flat().length : 0
+  const selectedCount = Object.values(selected).filter(Boolean).length
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="card-fantasy border border-border rounded-xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span className="text-sm font-medium">Scansione AI — {map.title}</span>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xs">✕</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {step === 'input' && (
+            <div className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Gemini analizzerà la mappa e identificherà automaticamente città, mari, isole, montagne e regioni.
+              </p>
+
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded p-3 text-xs text-red-400">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <button
+                  onClick={handleUseUrl}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg border border-border hover:border-purple-500/30 hover:bg-purple-500/5 transition-all text-left"
+                >
+                  <Map className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium">Usa URL della mappa</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-80">{map.image_url}</p>
+                  </div>
+                </button>
+
+                <label className="w-full flex items-center gap-3 px-3 py-3 rounded-lg border border-border hover:border-purple-500/30 hover:bg-purple-500/5 transition-all cursor-pointer">
+                  <Upload className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium">Carica file immagine</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">JPG, PNG, WEBP — consigliato se l'URL non funziona</p>
+                  </div>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {step === 'loading' && (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+              <p className="text-sm text-muted-foreground">Analisi mappa in corso...</p>
+              <p className="text-xs text-muted-foreground/60">Gemini sta leggendo i nomi geografici</p>
+            </div>
+          )}
+
+          {step === 'results' && locations && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {totalItems} luoghi trovati — {selectedCount} selezionati
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => selectAll(Object.values(locations).flat(), true)} className="text-[10px] text-purple-400 hover:text-purple-300">
+                    Tutti
+                  </button>
+                  <button onClick={() => selectAll(Object.values(locations).flat(), false)} className="text-[10px] text-muted-foreground hover:text-foreground">
+                    Nessuno
+                  </button>
+                </div>
+              </div>
+
+              {(Object.keys(locations) as (keyof MapLocations)[]).map(cat => {
+                const items = locations[cat]
+                if (!items.length) return null
+                return (
+                  <div key={cat}>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{CATEGORY_LABELS[cat]}</p>
+                      <button
+                        onClick={() => selectAll(items, !items.every(n => selected[n]))}
+                        className="text-[10px] text-muted-foreground hover:text-foreground"
+                      >
+                        {items.every(n => selected[n]) ? 'Deseleziona' : 'Seleziona tutti'}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {items.map(name => (
+                        <button
+                          key={name}
+                          onClick={() => toggleItem(name)}
+                          className={cn(
+                            'flex items-center gap-1 px-2 py-1 rounded-full text-xs border transition-all',
+                            selected[name]
+                              ? 'bg-purple-500/15 text-purple-300 border-purple-500/40'
+                              : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                          )}
+                        >
+                          {selected[name] && <Check className="w-2.5 h-2.5" />}
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {step === 'results' && (
+          <div className="px-4 py-3 border-t border-border flex justify-between items-center">
+            <button onClick={() => setStep('input')} className="text-xs text-muted-foreground hover:text-foreground">
+              ← Indietro
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={selectedCount === 0}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-purple-600 hover:bg-purple-500 text-white text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Check className="w-3.5 h-3.5" />
+              Salva {selectedCount} luoghi in memoria
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      resolve(result.split(',')[1])
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 }
 
 function AddMapDialog({

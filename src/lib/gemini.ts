@@ -14,13 +14,17 @@ export function saveGeminiKey(key: string) {
   else localStorage.removeItem(GEMINI_KEY)
 }
 
-export async function geminiGenerate(apiKey: string, prompt: string): Promise<string> {
+type ImagePart =
+  | { inlineData: { mimeType: string; data: string } }
+  | { fileData: { mimeType: string; fileUri: string } }
+
+async function callGemini(apiKey: string, parts: (ImagePart | { text: string })[], maxTokens = 600): Promise<string> {
   const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 600, temperature: 0.75 },
+      contents: [{ parts }],
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.75 },
     }),
   })
   if (!res.ok) {
@@ -29,6 +33,85 @@ export async function geminiGenerate(apiKey: string, prompt: string): Promise<st
   }
   const data = await res.json()
   return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? ''
+}
+
+export async function geminiGenerate(apiKey: string, prompt: string): Promise<string> {
+  return callGemini(apiKey, [{ text: prompt }])
+}
+
+export async function geminiAnalyzeMapFile(
+  apiKey: string,
+  fileBase64: string,
+  mimeType: string,
+): Promise<MapLocations> {
+  const text = await callGemini(
+    apiKey,
+    [
+      { inlineData: { mimeType, data: fileBase64 } },
+      { text: MAP_ANALYSIS_PROMPT },
+    ],
+    1000,
+  )
+  return parseMapLocations(text)
+}
+
+export async function geminiAnalyzeMapUrl(
+  apiKey: string,
+  imageUrl: string,
+): Promise<MapLocations> {
+  const mimeType = imageUrl.match(/\.png(\?|$)/i) ? 'image/png' :
+    imageUrl.match(/\.gif(\?|$)/i) ? 'image/gif' :
+    imageUrl.match(/\.webp(\?|$)/i) ? 'image/webp' : 'image/jpeg'
+
+  const text = await callGemini(
+    apiKey,
+    [
+      { fileData: { mimeType, fileUri: imageUrl } },
+      { text: MAP_ANALYSIS_PROMPT },
+    ],
+    1000,
+  )
+  return parseMapLocations(text)
+}
+
+export interface MapLocations {
+  cities: string[]
+  seas: string[]
+  islands: string[]
+  mountains: string[]
+  forests: string[]
+  regions: string[]
+  other: string[]
+}
+
+const MAP_ANALYSIS_PROMPT = `Analizza questa immagine di una mappa fantasy/di gioco di ruolo.
+Identifica e trascrivi TUTTI i nomi geografici visibili con attenzione alla grafia esatta.
+
+Rispondi SOLO con un oggetto JSON (senza markdown, senza backtick), in questo formato:
+{"cities":["..."],"seas":["..."],"islands":["..."],"mountains":["..."],"forests":["..."],"regions":["..."],"other":["..."]}
+
+Regole:
+- Includi solo nomi chiaramente leggibili nella mappa
+- Ometti le categorie vuote
+- Non aggiungere descrizioni, solo i nomi
+- Usa la lingua originale della mappa`
+
+function parseMapLocations(raw: string): MapLocations {
+  const clean = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+  try {
+    const parsed = JSON.parse(clean)
+    return {
+      cities: parsed.cities ?? [],
+      seas: parsed.seas ?? [],
+      islands: parsed.islands ?? [],
+      mountains: parsed.mountains ?? [],
+      forests: parsed.forests ?? [],
+      regions: parsed.regions ?? [],
+      other: parsed.other ?? [],
+    }
+  } catch {
+    return { cities: [], seas: [], islands: [], mountains: [], forests: [], regions: [], other: [] }
+  }
 }
 
 export function buildNPCPrompt(campaign: { title: string; description?: string | null }, npc: {
