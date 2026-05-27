@@ -287,13 +287,18 @@ function MapScanDialog({
     setStep('loading')
     setError(null)
     try {
-      const base64 = await fileToBase64(file)
-      const result = await geminiAnalyzeMapFile(key, base64, file.type || 'image/jpeg')
+      const { base64, mimeType } = await compressAndConvertImage(file)
+      const result = await geminiAnalyzeMapFile(key, base64, mimeType)
       setLocations(result)
       initSelected(result)
       setStep('results')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore sconosciuto')
+      const msg = err instanceof Error ? err.message : 'Errore sconosciuto'
+      if (msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('429')) {
+        setError('Quota API Gemini esaurita. Verifica il tuo piano su aistudio.google.com o riprova tra qualche minuto. Con il piano gratuito ci sono limiti di richieste al minuto.')
+      } else {
+        setError(msg)
+      }
       setStep('input')
     }
   }
@@ -309,7 +314,12 @@ function MapScanDialog({
       initSelected(result)
       setStep('results')
     } catch (err) {
-      setError(`Impossibile analizzare tramite URL: ${err instanceof Error ? err.message : 'Errore'}. Prova a caricare il file direttamente.`)
+      const msg = err instanceof Error ? err.message : 'Errore'
+      if (msg.includes('quota') || msg.includes('RESOURCE_EXHAUSTED') || msg.includes('429')) {
+        setError('Quota API Gemini esaurita. Verifica il tuo piano su aistudio.google.com o riprova tra qualche minuto.')
+      } else {
+        setError(`Impossibile analizzare tramite URL: ${msg}. Prova a caricare il file direttamente.`)
+      }
       setStep('input')
     }
   }
@@ -383,7 +393,7 @@ function MapScanDialog({
                   <Upload className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div>
                     <p className="text-xs font-medium">Carica file immagine</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">JPG, PNG, WEBP — consigliato se l'URL non funziona</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">JPG, PNG, WEBP — l'immagine viene compressa automaticamente</p>
                   </div>
                   <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
                 </label>
@@ -473,14 +483,27 @@ function MapScanDialog({
   )
 }
 
-function fileToBase64(file: File): Promise<string> {
+function compressAndConvertImage(file: File, maxPx = 1280, quality = 0.75): Promise<{ base64: string; mimeType: string }> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      resolve(result.split(',')[1])
-    }
     reader.onerror = reject
+    reader.onload = () => {
+      const img = new Image()
+      img.onerror = reject
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0, w, h)
+        const dataUrl = canvas.toDataURL('image/jpeg', quality)
+        resolve({ base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' })
+      }
+      img.src = reader.result as string
+    }
     reader.readAsDataURL(file)
   })
 }
