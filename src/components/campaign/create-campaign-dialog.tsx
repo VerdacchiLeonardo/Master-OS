@@ -81,7 +81,7 @@ export function CreateCampaignDialog({ children }: CreateCampaignDialogProps) {
 
     setOpen(false)
     setLoading(false)
-    router.push(`/campaign/${campaign.id}`)
+    router.push(`/campaign?id=${campaign.id}`)
   }
 
   return (

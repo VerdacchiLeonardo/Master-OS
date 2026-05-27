@@ -1,12 +1,12 @@
 'use client'
 
-import { useParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { MobileAwareLayout } from '@/components/layout/mobile-aware-layout'
 import Link from 'next/link'
 
 export function CampaignLayoutClient({ children }: { children: React.ReactNode }) {
-  const { id } = useParams<{ id: string }>()
+  const id = useSearchParams().get('id') ?? ''
   const campaign = useStore(s => s.campaigns[id])
 
   if (!campaign) {

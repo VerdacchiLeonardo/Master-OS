@@ -18,14 +18,14 @@ interface SidebarProps {
 }
 
 const campaignNavItems = (id: string) => [
-  { href: `/campaign/${id}`, label: 'Dashboard', icon: Sparkles },
-  { href: `/campaign/${id}/timeline`, label: 'Timeline', icon: ScrollText },
-  { href: `/campaign/${id}/world-state`, label: 'World State', icon: Globe },
-  { href: `/campaign/${id}/sessions`, label: 'Session Logs', icon: BookOpen },
-  { href: `/campaign/${id}/maps`, label: 'Mappe', icon: Map },
-  { href: `/campaign/${id}/npcs`, label: 'NPC', icon: Users },
-  { href: `/campaign/${id}/factions`, label: 'Fazioni', icon: Shield },
-  { href: `/campaign/${id}/objectives`, label: 'Obiettivi', icon: Target },
+  { href: `/campaign?id=${id}`, path: '/campaign', label: 'Dashboard', icon: Sparkles },
+  { href: `/campaign/timeline?id=${id}`, path: '/campaign/timeline', label: 'Timeline', icon: ScrollText },
+  { href: `/campaign/world-state?id=${id}`, path: '/campaign/world-state', label: 'World State', icon: Globe },
+  { href: `/campaign/sessions?id=${id}`, path: '/campaign/sessions', label: 'Session Logs', icon: BookOpen },
+  { href: `/campaign/maps?id=${id}`, path: '/campaign/maps', label: 'Mappe', icon: Map },
+  { href: `/campaign/npcs?id=${id}`, path: '/campaign/npcs', label: 'NPC', icon: Users },
+  { href: `/campaign/factions?id=${id}`, path: '/campaign/factions', label: 'Fazioni', icon: Shield },
+  { href: `/campaign/objectives?id=${id}`, path: '/campaign/objectives', label: 'Obiettivi', icon: Target },
 ]
 
 export function Sidebar({ campaignId, campaignTitle, mobileOpen, onMobileClose }: SidebarProps) {
@@ -111,7 +111,7 @@ export function Sidebar({ campaignId, campaignTitle, mobileOpen, onMobileClose }
           <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
             {campaignNavItems(campaignId).map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href || (item.href !== `/campaign/${campaignId}` && pathname.startsWith(item.href))
+              const isActive = pathname === item.path
               return (
                 <Link
                   key={item.href}

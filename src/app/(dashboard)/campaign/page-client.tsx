@@ -1,6 +1,6 @@
 'use client'
 
-import { useParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { useShallow } from 'zustand/shallow'
 import { Progress } from '@/components/ui/progress'
@@ -13,7 +13,7 @@ import {
 import Link from 'next/link'
 
 export default function CampaignDashboard() {
-  const { id } = useParams<{ id: string }>()
+  const id = useSearchParams().get('id') ?? ''
   const campaign = useStore(s => s.campaigns[id])
   const worldState = useStore(s => s.getLatestWorldState(id))
   const recentEvents = useStore(useShallow(s => s.getEventsByCampaign(id).slice(0, 5)))
@@ -24,12 +24,12 @@ export default function CampaignDashboard() {
   if (!campaign) return null
 
   const quickLinks = [
-    { href: `/campaign/${id}/timeline`, icon: ScrollText, label: 'Timeline', count: recentEvents.length },
-    { href: `/campaign/${id}/sessions`, icon: BookOpen, label: 'Sessioni', count: sessions.length },
-    { href: `/campaign/${id}/npcs`, icon: Users, label: 'NPC', count: npcCount },
-    { href: `/campaign/${id}/factions`, icon: Shield, label: 'Fazioni', count: factionCount },
-    { href: `/campaign/${id}/maps`, icon: Map, label: 'Mappe', count: undefined },
-    { href: `/campaign/${id}/objectives`, icon: Target, label: 'Obiettivi', count: undefined },
+    { href: `/campaign/timeline?id=${id}`, icon: ScrollText, label: 'Timeline', count: recentEvents.length },
+    { href: `/campaign/sessions?id=${id}`, icon: BookOpen, label: 'Sessioni', count: sessions.length },
+    { href: `/campaign/npcs?id=${id}`, icon: Users, label: 'NPC', count: npcCount },
+    { href: `/campaign/factions?id=${id}`, icon: Shield, label: 'Fazioni', count: factionCount },
+    { href: `/campaign/maps?id=${id}`, icon: Map, label: 'Mappe', count: undefined },
+    { href: `/campaign/objectives?id=${id}`, icon: Target, label: 'Obiettivi', count: undefined },
   ]
 
   return (
@@ -114,7 +114,7 @@ export default function CampaignDashboard() {
                 <TrendingUp className="w-3.5 h-3.5 text-[hsl(var(--gold))]" />
                 Eventi Recenti
               </h3>
-              <Link href={`/campaign/${id}/timeline`} className="text-xs text-[hsl(var(--gold)/0.7)] hover:text-[hsl(var(--gold))] transition-colors">
+              <Link href={`/campaign/timeline?id=${id}`} className="text-xs text-[hsl(var(--gold)/0.7)] hover:text-[hsl(var(--gold))] transition-colors">
                 Vedi tutti →
               </Link>
             </div>
@@ -148,7 +148,7 @@ export default function CampaignDashboard() {
                   <BookOpen className="w-3.5 h-3.5 text-[hsl(var(--gold))]" />
                   Ultime Sessioni
                 </h3>
-                <Link href={`/campaign/${id}/sessions`} className="text-xs text-[hsl(var(--gold)/0.7)] hover:text-[hsl(var(--gold))] transition-colors">
+                <Link href={`/campaign/sessions?id=${id}`} className="text-xs text-[hsl(var(--gold)/0.7)] hover:text-[hsl(var(--gold))] transition-colors">
                   Vedi tutte →
                 </Link>
               </div>

@@ -1,12 +1,12 @@
 'use client'
 
-import { useParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useStore } from '@/lib/store'
 import { useShallow } from 'zustand/shallow'
 import { MapsView } from '@/components/maps/maps-view'
 
 export default function MapsPage() {
-  const { id } = useParams<{ id: string }>()
+  const id = useSearchParams().get('id') ?? ''
   const maps = useStore(useShallow(s => s.getMapsByCampaign(id)))
   const locations = useStore(useShallow(s => s.getLocationsByCampaign(id)))
 
