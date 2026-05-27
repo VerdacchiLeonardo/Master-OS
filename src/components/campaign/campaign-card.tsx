@@ -26,7 +26,7 @@ interface CampaignCardProps {
 
 export function CampaignCard({ campaign }: CampaignCardProps) {
   return (
-    <Link href={`/campaign/${campaign.id}`} className="group block">
+    <Link href={`/campaign?id=${campaign.id}`} className="group block">
       <div
         className={cn(
           'card-fantasy border border-[hsl(var(--gold)/0.12)] rounded-xl p-5 h-full',
