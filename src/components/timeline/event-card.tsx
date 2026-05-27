@@ -4,11 +4,9 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { cn, getImportanceColor, getStatusColor } from '@/lib/utils'
 import {
-  Sword, ScrollText, Crown, Star, Eye, Skull, Globe, Zap, AlertTriangle, Clock, ChevronDown, ChevronUp, Sparkles, Loader2
+  Sword, ScrollText, Crown, Star, Eye, Skull, Globe, Zap, AlertTriangle, Clock, ChevronDown, ChevronUp
 } from 'lucide-react'
 import type { TimelineEvent } from '@/types'
-import { useStore } from '@/lib/store'
-import { getGeminiKey, geminiGenerate, buildTimelineEventPrompt } from '@/lib/gemini'
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   story: ScrollText,
@@ -40,33 +38,10 @@ interface TimelineEventCardProps {
   onUpdate?: (e: TimelineEvent) => void
 }
 
-export function TimelineEventCard({ event: initial }: TimelineEventCardProps) {
-  const [event, setEvent] = useState(initial)
+export function TimelineEventCard({ event }: TimelineEventCardProps) {
   const [expanded, setExpanded] = useState(false)
-  const [generating, setGenerating] = useState(false)
-  const updateTimelineEvent = useStore(s => s.updateTimelineEvent)
-  const getCampaignById = useStore(s => s.getCampaignById)
   const Icon = TYPE_ICONS[event.event_type] ?? ScrollText
   const dotColor = STATUS_DOT_COLORS[event.status] ?? 'bg-muted-foreground'
-
-  async function handleAI(e: React.MouseEvent) {
-    e.stopPropagation()
-    const key = getGeminiKey()
-    if (!key) { alert('Configura prima la chiave API Gemini nella sidebar.'); return }
-    const campaign = getCampaignById(event.campaign_id)
-    if (!campaign) return
-    setGenerating(true)
-    try {
-      const text = await geminiGenerate(key, buildTimelineEventPrompt(campaign, event))
-      updateTimelineEvent(event.id, { ai_analysis: text })
-      setEvent(ev => ({ ...ev, ai_analysis: text }))
-      setExpanded(true)
-    } catch (err) {
-      alert(`Errore AI: ${err instanceof Error ? err.message : 'Errore sconosciuto'}`)
-    } finally {
-      setGenerating(false)
-    }
-  }
 
   return (
     <div className="relative">
@@ -136,13 +111,6 @@ export function TimelineEventCard({ event: initial }: TimelineEventCardProps) {
               </p>
             )}
 
-            {event.ai_analysis && expanded && (
-              <div className="mt-3 pt-3 border-t border-border/50">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Analisi AI</p>
-                <p className="text-xs text-muted-foreground">{event.ai_analysis}</p>
-              </div>
-            )}
-
             {event.trigger_condition && expanded && (
               <div className="mt-2 text-xs">
                 <span className="text-muted-foreground">Trigger: </span>
@@ -150,8 +118,8 @@ export function TimelineEventCard({ event: initial }: TimelineEventCardProps) {
               </div>
             )}
 
-            <div className="mt-1 flex items-center gap-3">
-              {(event.description?.length ?? 0) > 80 || event.ai_analysis ? (
+            {(event.description?.length ?? 0) > 80 && (
+              <div className="mt-1">
                 <button
                   onClick={() => setExpanded(!expanded)}
                   className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
@@ -159,16 +127,8 @@ export function TimelineEventCard({ event: initial }: TimelineEventCardProps) {
                   {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   {expanded ? 'Meno' : 'Altro'}
                 </button>
-              ) : null}
-              <button
-                onClick={handleAI}
-                disabled={generating}
-                className="flex items-center gap-0.5 text-[10px] text-purple-400/70 hover:text-purple-300 transition-colors disabled:opacity-50"
-              >
-                {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                {generating ? 'Analisi...' : event.ai_analysis ? 'Rigenera' : 'Analizza AI'}
-              </button>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

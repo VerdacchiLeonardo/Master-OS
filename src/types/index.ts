@@ -31,7 +31,6 @@ export interface TimelineEvent {
   trigger_condition: string | null
   event_date: string | null
   session_number: number | null
-  ai_analysis: string | null
   created_at: string
   updated_at: string
 }
@@ -42,8 +41,6 @@ export interface SessionLog {
   session_number: number
   title: string | null
   raw_notes: string
-  ai_summary: string | null
-  ai_consequences: string | null
   key_events: Array<unknown>
   session_date: string | null
   duration_hours: number | null
@@ -84,7 +81,6 @@ export interface Faction {
   leader_npc_id: string | null
   color: string | null
   secrets: string | null
-  ai_analysis: string | null
   created_at: string
   updated_at: string
 }
@@ -113,7 +109,6 @@ export interface NPC {
   motivation: string | null
   secrets: string | null
   is_player_known: boolean
-  ai_notes: string | null
   created_at: string
   updated_at: string
 }

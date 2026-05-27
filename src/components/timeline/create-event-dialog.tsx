@@ -57,7 +57,6 @@ export function CreateEventDialog({ children, campaignId, onCreated }: CreateEve
       trigger_condition: form.trigger_condition || null,
       event_date: form.event_date || null,
       session_number: null,
-      ai_analysis: null,
     })
 
     onCreated(event)

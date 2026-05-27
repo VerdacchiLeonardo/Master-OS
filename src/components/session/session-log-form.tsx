@@ -35,8 +35,6 @@ export function SessionLogForm({
       session_number: sessionNumber,
       title: title || null,
       raw_notes: notes,
-      ai_summary: null,
-      ai_consequences: null,
       key_events: [],
       session_date: null,
       duration_hours: null,

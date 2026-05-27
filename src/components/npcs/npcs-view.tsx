@@ -7,8 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Users, Skull, Heart, Eye, EyeOff, Shield, Sparkles, Loader2 } from 'lucide-react'
-import { getGeminiKey, geminiGenerate, buildNPCPrompt } from '@/lib/gemini'
+import { Plus, Users, Skull, Heart, Eye, EyeOff, Shield } from 'lucide-react'
 import { cn, generateInitials } from '@/lib/utils'
 import type { NPC } from '@/types'
 
@@ -95,29 +94,9 @@ export function NPCsView({ npcs: initial, factions, campaignId }: NPCsViewProps)
 }
 
 function NPCCard({ npc: initial, factions }: { npc: NPC; factions: Array<{ id: string; name: string; color: string | null }> }) {
-  const [npc, setNpc] = useState(initial)
-  const [generating, setGenerating] = useState(false)
-  const updateNPC = useStore(s => s.updateNPC)
-  const getCampaignById = useStore(s => s.getCampaignById)
+  const npc = initial
   const StatusIcon = STATUS_ICONS[npc.status] ?? Eye
   const faction = factions.find(f => f.id === npc.faction_id)
-
-  async function handleAI() {
-    const key = getGeminiKey()
-    if (!key) { alert('Configura prima la chiave API Gemini nella sidebar.'); return }
-    const campaign = getCampaignById(npc.campaign_id)
-    if (!campaign) return
-    setGenerating(true)
-    try {
-      const text = await geminiGenerate(key, buildNPCPrompt(campaign, npc, faction?.name))
-      updateNPC(npc.id, { ai_notes: text })
-      setNpc(n => ({ ...n, ai_notes: text }))
-    } catch (e) {
-      alert(`Errore AI: ${e instanceof Error ? e.message : 'Errore sconosciuto'}`)
-    } finally {
-      setGenerating(false)
-    }
-  }
 
   return (
     <div className={cn(
@@ -174,23 +153,6 @@ function NPCCard({ npc: initial, factions }: { npc: NPC; factions: Array<{ id: s
         </div>
       )}
 
-      {npc.ai_notes && (
-        <div className="pt-2 border-t border-border/50">
-          <p className="text-[10px] text-purple-400/80 uppercase tracking-wider mb-1 flex items-center gap-1">
-            <Sparkles className="w-2.5 h-2.5" /> Note AI
-          </p>
-          <p className="text-xs text-muted-foreground whitespace-pre-wrap">{npc.ai_notes}</p>
-        </div>
-      )}
-
-      <button
-        onClick={handleAI}
-        disabled={generating}
-        className="flex items-center gap-1.5 text-xs text-purple-400/70 hover:text-purple-300 transition-colors disabled:opacity-50"
-      >
-        {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-        {generating ? 'Generazione...' : npc.ai_notes ? 'Rigenera note' : 'Genera note AI'}
-      </button>
     </div>
   )
 }
@@ -231,7 +193,6 @@ function CreateNPCDialog({
       secrets: form.secrets || null,
       is_player_known: form.is_player_known,
       current_location_id: null,
-      ai_notes: null,
     })
 
     onCreated(npc)
