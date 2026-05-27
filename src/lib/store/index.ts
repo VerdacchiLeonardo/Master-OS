@@ -66,6 +66,7 @@ interface AppState {
 
   // Locations
   createLocation: (data: Omit<Location, 'id' | 'created_at'>) => Location
+  updateLocation: (id: string, data: Partial<Location>) => void
   deleteLocation: (id: string) => void
 
   // Selectors
@@ -202,6 +203,7 @@ export const useStore = create<AppState>()(
         set(s => ({ locations: { ...s.locations, [item.id]: item } }))
         return item
       },
+      updateLocation: (id, data) => set(s => ({ locations: { ...s.locations, [id]: { ...s.locations[id], ...data } } })),
       deleteLocation: (id) => set(s => { const { [id]: _, ...rest } = s.locations; return { locations: rest } }),
 
       getCampaignById: (id) => get().campaigns[id],
